@@ -1,0 +1,27 @@
+<HTMLQuestion xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2011-11-11/HTMLQuestion.xsd">
+  <HTMLContent><![CDATA[
+<script src="https://assets.crowd.aws/crowd-html-elements.js"></script>
+
+<crowd-form answer-format="flatten-objects">
+
+    <div>
+        <h2> Instructions </h2>
+        <span> For each pair, select which is <strong>greater</strong>.</span>
+        <ul>
+            <li>If the left item is greater, select "Left".</li>
+            <li>If the right item is greater, select "Right".</li>
+            <li>If neither is greater, select "Neither".</li>
+        </ul>
+        <span> Some comparisons may seem like a stretch, just answer these as best as you can. </span>
+        <br>
+        <br>
+        <br>
+        
+{}
+        
+    </div>
+</crowd-form>
+]]>
+  </HTMLContent>
+  <FrameHeight>0</FrameHeight>
+</HTMLQuestion>
