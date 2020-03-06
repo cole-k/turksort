@@ -1,9 +1,13 @@
 import time
 import boto3
 import random
+from pprint import pprint
 from xml.dom.minidom import parseString
 
+# How long to wait between polling for a response from mturk
 wait_time = 5
+# Whether to print debug messages
+debug = True
 
 # Format item -- Description
 #           n -- Index (0-based)
@@ -53,14 +57,22 @@ def getAnswerContents(answerNode):
     return int(fieldNumber), fieldType, to_bool(answer)
 
 def turk_compare_greater(queries):
+    '''
+    Compares a list of (x,y) queries via Amazon Mechanical Turk, returning
+    whether x ('left'), y ('right'), or neither ('equal') is greater.
+    '''
     answers = [ None for _ in queries ]
+
+    # scale for every 5 questions, capping at 0.10
     reward = min(((len(queries) // 5) + 1) * 0.01, 0.10)
+
     with open('form-template.xml', 'r') as f:
         form = f.read()
         contents = ''
         for n, (x,y) in enumerate(queries):
             contents += button_group.format(n=n, m=n+1,left=str(x), right=str(y))
         question = form.format(contents)
+
     response = client.create_hit(
         MaxAssignments=1,
         LifetimeInSeconds=1800,
@@ -73,10 +85,13 @@ def turk_compare_greater(queries):
         QualificationRequirements=[],
     )
 
+    # Poll every 'wait_time' seconds to see if there's a response
     hit_id = response['HIT']['HITId']
-    print('Waiting on a response',end='',flush=True)
+    if debug:
+        print('Waiting on a response',end='',flush=True)
     while True:
-        print('.',end='',flush=True)
+        if debug:
+            print('.',end='',flush=True)
         time.sleep(wait_time)
         assignments_response = client.list_assignments_for_hit(
             HITId=hit_id,
@@ -84,15 +99,23 @@ def turk_compare_greater(queries):
         )
         if assignments_response['NumResults'] >= 1:
             break
+
+    # Extract the answers
     contents = parseString(assignments_response['Assignments'][0]['Answer'])
     for node in contents.getElementsByTagName('Answer'):
         n, field, isCorrect = getAnswerContents(node)
         if isCorrect:
             answers[n] = field
-    print()
+    # Add a newline to the debug prints
+    if debug:
+        print()
     return answers
 
 def computer_compare_greater(queries):
+    '''
+    Compares the queries in the same manner as 'turk_compare_greater', but
+    limited by Python's type system.
+    '''
     answers = queries.copy()
     for i,(x, y) in enumerate(queries):
         if x > y:
@@ -127,7 +150,7 @@ def turksort(xs, compare_greater = turk_compare_greater):
     return turksort(lesser, compare_greater) + equal + turksort(greater, compare_greater)
 
 
-def test_sort(sort, num_iterations=1000, max_int=1000, list_size=1000):
+def test_computer_sort(sort, num_iterations=1000, max_int=1000, list_size=1000):
     print('Testing sort...')
     for _ in range(num_iterations):
         xs = random.sample(range(max_int),list_size)
@@ -137,6 +160,27 @@ def test_sort(sort, num_iterations=1000, max_int=1000, list_size=1000):
     else:
         print('Ran {} tests successfully'.format(num_iterations))
 
+def test_weight():
+    correct_order = [ 'half a pound of wheat'
+                    , 'one pound of wheat'
+                    , 'three pounds of lettuce'
+                    , 'three pounds of feathers'
+                    , 'nine pounds of hay'
+                    , 'twenty pounds of rice'
+                    , 'one ton of feathers'
+                    , 'one ton of bricks'
+                    ]
+    queries = correct_order.copy()
+    random.shuffle(queries)
+    print('Input:')
+    pprint(queries)
+    print('Desired sorting:')
+    pprint(correct_order)
+    print('Computer sorted (lexicographic):')
+    pprint(list(sorted(queries)))
+    print('Turksorted:')
+    pprint(turksort(queries))
+
 if __name__ == '__main__':
     # test_sort(lambda xs: turksort(xs, compare_greater = computer_compare_greater))
     session = boto3.Session()
@@ -144,4 +188,4 @@ if __name__ == '__main__':
         service_name='mturk',
         endpoint_url="https://mturk-requester-sandbox.us-east-1.amazonaws.com"
     )
-    # print(turksort(['one' for _ in range(100)]))
+    test_weight()
