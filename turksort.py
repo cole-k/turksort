@@ -8,6 +8,20 @@ from xml.dom.minidom import parseString
 wait_time = 5
 # Whether to print debug messages
 debug = True
+# Duration workers have to complete the task
+assignment_duration = 300
+# Duration the task is live
+assignment_lifetime = 900
+
+# Production
+production = True
+
+if production:
+    # Prod
+    endpoint_url = 'https://mturk-requester.us-east-1.amazonaws.com'
+else:
+    # Sandbox
+    endpoint_url = 'https://mturk-requester-sandbox.us-east-1.amazonaws.com'
 
 # Format item -- Description
 #           n -- Index (0-based)
@@ -18,25 +32,15 @@ button_group = \
 '''
         <div id="div{n}">
           <h3> Question {m} </h3>
-          <table>
-            <tr>
-              <th><pre>     </pre></th>
-              <th>Left</th>
-              <th><pre>     </pre></th>
-              <th>Right</th>
-            </tr>
-            <tr>
-              <td><pre>     </pre></td>
-              <td>{left}</td>
-              <td><pre>     </pre></td>
-              <td>{right}</td>
-            </tr>
-          </table>
 
+          <span> Which is <strong>greater</strong>?</span>
+          <br>
           <crowd-radio-group>
-            <crowd-radio-button name="left.{n}">Left</crowd-radio-button>
+            <crowd-radio-button name="left.{n}">{left}</crowd-radio-button>
+            <br>
+            <crowd-radio-button name="right.{n}">{right}</crowd-radio-button>
+            <br>
             <crowd-radio-button name="equal.{n}">Neither</crowd-radio-button>
-            <crowd-radio-button name="right.{n}">Right</crowd-radio-button>
           </crowd-radio-group>
         </div>
 
@@ -60,11 +64,14 @@ def turk_compare_greater(queries):
     '''
     Compares a list of (x,y) queries via Amazon Mechanical Turk, returning
     whether x ('left'), y ('right'), or neither ('equal') is greater.
+
+    Returns the list of answers as well as a value to indicate what reward was given.
     '''
     answers = [ None for _ in queries ]
 
-    # scale for every 5 questions, capping at 0.10
-    reward = min(((len(queries) // 5) + 1) * 0.01, 0.10)
+    # start at 2 cents; scale for every 5 questions by 1 cent
+    # cap at 10 cents
+    reward = min(((len(queries) // 5) + 2) * 0.01, 0.10)
 
     with open('form-template.xml', 'r') as f:
         form = f.read()
@@ -75,8 +82,8 @@ def turk_compare_greater(queries):
 
     response = client.create_hit(
         MaxAssignments=1,
-        LifetimeInSeconds=1800,
-        AssignmentDurationInSeconds=300,
+        LifetimeInSeconds=assignment_lifetime,
+        AssignmentDurationInSeconds=assignment_duration,
         Reward='{:.2f}'.format(reward),
         Title='Which of these two objects is greater?',
         Keywords='quick, easy, question, answer, compare',
@@ -88,6 +95,10 @@ def turk_compare_greater(queries):
     # Poll every 'wait_time' seconds to see if there's a response
     hit_id = response['HIT']['HITId']
     if debug:
+        print('Created HIT with id: {}.'.format(hit_id))
+        print('View the hit at https://{}.mturk.com/mturk/preview?groupId={}'.format(
+            'www' if production else 'workersandbox',
+            response['HIT']['HITTypeId']))
         print('Waiting on a response',end='',flush=True)
     while True:
         if debug:
@@ -100,21 +111,41 @@ def turk_compare_greater(queries):
         if assignments_response['NumResults'] >= 1:
             break
 
-    # Extract the answers
-    contents = parseString(assignments_response['Assignments'][0]['Answer'])
+    # Extract the answer
+    assignment = assignments_response['Assignments'][0]
+    contents = parseString(assignment['Answer'])
     for node in contents.getElementsByTagName('Answer'):
         n, field, isCorrect = getAnswerContents(node)
         if isCorrect:
             answers[n] = field
+    if assignment['AssignmentStatus'] == 'Submitted' and all(answer is not None for answer in answers):
+        client.approve_assignment(
+            AssignmentId=assignment['AssignmentId'],
+            RequesterFeedback='Thank you!',
+            OverrideRejection=False
+        )
+    else:
+        if debug:
+            print()
+            print('Turker did not fill all entries, rejecting and retrying.')
+        client.reject_assignment(
+            AssignmentId=assignment['AssignmentId'],
+            RequesterFeedback='You did not answer all the questions :(',
+        )
+        # try again
+        return turk_compare_greater(queries)
     # Add a newline to the debug prints
     if debug:
         print()
-    return answers
+    return answers, reward
 
 def computer_compare_greater(queries):
     '''
     Compares the queries in the same manner as 'turk_compare_greater', but
     limited by Python's type system.
+
+    Returns 0 as the second argument to be congruous with the return type
+    of 'turk_compare_greater' (it costs 0 cents to compare)
     '''
     answers = queries.copy()
     for i,(x, y) in enumerate(queries):
@@ -124,30 +155,38 @@ def computer_compare_greater(queries):
             answers[i] = 'right'
         else:
             answers[i] = 'equal'
-    return answers
+    return answers,0
 
 def turksort(xs, compare_greater = turk_compare_greater):
     '''
     Sorts any array whose elements can be displayed for comparison.
+
+    Returns the sorted array as well as the total cost.
 
     Simplicity favored over speed and memory usage, as well as the
     number of queries made.
     '''
 
     if len(xs) <= 1:
-        return xs
+        return xs, 0
 
     pivot, *rest = xs
 
     queries = [ (pivot, x) for x in rest ]
 
-    answers = compare_greater(queries)
+    answers, cost = compare_greater(queries)
+
+    if debug:
+        print('Pivot: {}, array: {}, answers: {}'.format(pivot, rest, answers))
 
     lesser  = [ x for i, x in enumerate(rest) if answers[i] == 'left' ]
     equal   = [ pivot ] + [ x for i, x in enumerate(rest) if answers[i] == 'equal' ]
     greater = [ x for i, x in enumerate(rest) if answers[i] == 'right' ]
 
-    return turksort(lesser, compare_greater) + equal + turksort(greater, compare_greater)
+    lesser_sorted, lesser_cost = turksort(lesser, compare_greater)
+    greater_sorted, greater_cost = turksort(greater, compare_greater)
+
+    return  lesser_sorted + equal + greater_sorted, cost + lesser_cost + greater_cost
 
 
 def test_computer_sort(sort, num_iterations=1000, max_int=1000, list_size=1000):
@@ -178,14 +217,19 @@ def test_weight():
     pprint(correct_order)
     print('Computer sorted (lexicographic):')
     pprint(list(sorted(queries)))
-    print('Turksorted:')
-    pprint(turksort(queries))
+    turksorted, cost = turksort(queries)
+    print('Turksorted with cost {}:'.format(cost))
+    pprint(turksorted)
 
 if __name__ == '__main__':
-    # test_sort(lambda xs: turksort(xs, compare_greater = computer_compare_greater))
+    # test_computer_sort(lambda xs: turksort(xs, compare_greater = computer_compare_greater))
     session = boto3.Session()
+    if production:
+        print('!!! Running in production !!!')
+        print('Cancel now if this was mistaken')
+        time.sleep(10)
     client = session.client(
         service_name='mturk',
-        endpoint_url="https://mturk-requester-sandbox.us-east-1.amazonaws.com"
+        endpoint_url=endpoint_url
     )
     test_weight()

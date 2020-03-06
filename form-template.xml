@@ -6,14 +6,14 @@
 
     <div>
         <h2> Instructions </h2>
-        <span> For each pair, select which is <strong>greater</strong>.</span>
-        <ul>
-            <li>If the left item is greater, select "Left".</li>
-            <li>If the right item is greater, select "Right".</li>
-            <li>If neither is greater, select "Neither".</li>
-        </ul>
+        <span> For each question, select which of the two items is <strong>greater</strong>.</span>
+        <br>
+        <span> If neither of the items is greater, or if they are both equal, select <strong>Neither</strong></span>
+        <br>
         <span> Some comparisons may seem like a stretch, just answer these as best as you can. </span>
         <br>
+        <br>
+        <span> Your responses will <strong>only</strong> be used to categorize data. Nothing is being monitored or stored except the selections you make. </span>
         <br>
         <br>
         
