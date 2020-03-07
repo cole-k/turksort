@@ -14,7 +14,7 @@ assignment_duration = 300
 assignment_lifetime = 900
 
 # Production
-production = True
+production = False
 
 if production:
     # Prod
