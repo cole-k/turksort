@@ -27,7 +27,7 @@ This should sort a sample list. The program will output links to the sandbox tha
 
 ## Future plans
 
-[ ] Finish paper writeup
-[ ] Create graphs of performance
-[ ] Make this into a library and clean up the code
-[ ] Parallelization
+- [ ] Finish paper writeup
+- [ ] Create graphs of performance
+- [ ] Make this into a library and clean up the code
+- [ ] Parallelization
