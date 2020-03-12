@@ -5,11 +5,13 @@
 \usepackage{hyperref}
 \usepackage{fancyref}
 
-\title{A Novel Type-Independent Sorting Algorithm}
+\title{Sorting with Human Intelligence}
 \author{Cole Kurashige \\ Harvey Mudd College}
 \date{2020 \\ March}
 
 \begin{document}
+
+\maketitle 
 
 \section{Abstract}
 This section is abstract.
@@ -72,7 +74,7 @@ Computers are limited at processing much of the information that is so easy for
 us humans to immediately understand, like pictures of dogs or whether
 \texttt{"-1"} is greater than \texttt{"-2"}. And we are limited at processing
 much of the information that is so easy for computers, like the exact colors of
-the millions of pixels in a picture of a dog or the product o two very large
+the millions of pixels in a picture of a dog or the product of two very large
 numbers.
 
 \begin{lstlisting}[caption = Complex Operations in JavaScript (Node.js 12.12.0)]
@@ -90,17 +92,15 @@ computational performance. At least until now.
 \section{Turksort}
 
 The idea behind turksort is simple: let computers handle all of the sorting
-tedium and let humans handle all of the comparisons. In that regard, turksort is
-not that different from most sorting algorithms.
+tedium and let humans handle all of the comparisons. It ends up being not that
+different from most sorting algorithms.
 
-All of the sorting remains the same, except whenever a request for a comparison
-between two values is made, a form is generated. This form asks which of the two
-is greater\footnote{``Neither'' is an option, too.}. The form is sent to
-Amazon's Mechanical Turk\footnote{\url{https://www.mturk.com/}} where a worker
-(known as a ``turker'') fills it out. The answers is sent back and then used
-for the comparison. \Fref{fig:comparison} depicts this process.
-
-A sample implementation of Turksort is available at \url{}.
+The algorithm differs only when two values need to be compared. When this
+happens, a form asking which of the two is greater\footnote{``Neither'' is an
+  option, too.} is generated. This form is sent to Amazon's Mechanical Turk
+(MTurk)\footnote{\url{https://www.mturk.com/}} where a worker (known as a
+``turker'') fills it out. The answers is sent back and then used for the
+comparison. \Fref{fig:comparison} depicts this process.
 
 \begin{figure}
   \centering
@@ -108,5 +108,58 @@ A sample implementation of Turksort is available at \url{}.
   \caption{How Turksort comparisons work}
   \label{fig:comparison}
 \end{figure}
+
+A sample implementation of Turksort is available at
+\url{https://github.com/cole-k/turksort}. Any analyses in this paper will be
+with reference to this implementation.
+
+The implementation is a modification of quicksort. Quicksort works by selecting
+an element in the list (called the ``pivot'') and comparing all of the other
+elements to it. It then partitions the list into three groups: those less than,
+equal to, or greater than the pivot. It recursively sorts all three partitions
+and combines them in order, producing a sorted array.
+
+The paritioning process requires queries to be made comparing the pivot to each
+of the other elements in the list. These comparisons are collected and sent to
+MTurk for evaluation. This allows us to batch the computations, since querying
+MTurk is slow in comparison to regular comparison. The answers from MTurk are
+then used in the partitioning, and the algorithm proceeds as usual.
+
+\section{Analysis}
+
+\subsection{Performance}
+Turksort is not an algorithm whose performance should be measured by traditional
+means. It, however, can be.
+
+Since it retries until it gets a response from the Turker, Turksort technically
+has an unbounded time complexity. Even assuming that the response time from the
+Turker is bounded and proportionate to the query size, the asymptotic time
+complexity is that of quicksort. The average response time, even for shorter
+queries, is around 5 minutes, so the constants on the time complexity are very
+large. We leave it to future papers to figure out how this algorithm's time
+performance might be improved.
+
+The novel performance measurement we propose for Turksort is a cost metric. We
+call it the USD cost metric. It takes a Turker about 1 second to answer a single
+query. Since minimum wage in California is presently \$ 12.00, we pay 1 cent for
+every 3 queries a Turker answers, paying a floor of 1 cent if they are answering
+fewer than 3. \Fref{fig:costs} depicts the cost of a Turksort in comparison to
+the number of elements in the list to be sorted.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=300pt]{costs.png}
+  \caption{The cost of a Turksort compared to the number of elements}
+  \label{fig:costs}
+\end{figure}
+
+\subsection{Accuracy}
+Surprisingly, Turksort is not a deterministic algorithm. This is owing to the
+fact that mankind is not deterministic\footnote{Although it is unknown whether
+  individual humans are deterministic, in general no two humans perform
+  comparisons exactly alike.}. Not only is Turksort nondeterministic, it is also
+sometimes wrong. This is because Turkers do not always perform the right
+computations. Even on simple queries, such as \texttt{2 > 3}, they sometimes
+give an incorrect answer.
 
 \end{document}

@@ -1,3 +1,4 @@
+import csv
 import time
 import boto3
 import random
@@ -7,11 +8,17 @@ from xml.dom.minidom import parseString
 # How long to wait between polling for a response from mturk
 wait_time = 5
 # Whether to print debug messages
-debug = True
+debug = False
 # Duration workers have to complete the task
 assignment_duration = 300
 # Duration the task is live
 assignment_lifetime = 900
+# After how many questions do we raise the pay by 1 cent?
+pay_rate = 3
+# Minimum we're willing to pay per trial
+pay_min = 0.01
+# Maximum we're willing to pay per trial
+pay_max = float('inf')
 
 # Production
 production = False
@@ -46,6 +53,12 @@ button_group = \
 
 '''
 
+def compute_reward(num_queries):
+
+    # start at pay_min cents; scale for every pay_rate questions by 1 cent
+    # cap at pay_max cents
+    return min(((num_queries // pay_rate) + pay_min) * 0.01, pay_max)
+
 def to_bool(string):
     if string.lower() == 'false':
         return False
@@ -69,9 +82,7 @@ def turk_compare_greater(queries):
     '''
     answers = [ None for _ in queries ]
 
-    # start at 2 cents; scale for every 5 questions by 1 cent
-    # cap at 10 cents
-    reward = min(((len(queries) // 5) + 2) * 0.01, 0.10)
+    reward = compute_reward(len(queries))
 
     with open('form-template.xml', 'r') as f:
         form = f.read()
@@ -155,7 +166,7 @@ def computer_compare_greater(queries):
             answers[i] = 'right'
         else:
             answers[i] = 'equal'
-    return answers,0
+    return answers, compute_reward(len(queries))
 
 def turksort(xs, compare_greater = turk_compare_greater):
     '''
@@ -188,16 +199,28 @@ def turksort(xs, compare_greater = turk_compare_greater):
 
     return  lesser_sorted + equal + greater_sorted, cost + lesser_cost + greater_cost
 
-
-def test_computer_sort(sort, num_iterations=1000, max_int=1000, list_size=1000):
+def test_sort(sort, num_iterations=1000, max_int=1000, list_size=1000):
     print('Testing sort...')
     for _ in range(num_iterations):
-        xs = random.sample(range(max_int),list_size)
+        xs = random.choices(range(max_int),k=list_size)
         if any( x != y for x,y in zip(sort(xs), sorted(xs)) ):
             print('Sort failed on list {}'.format(xs))
             break
     else:
         print('Ran {} tests successfully'.format(num_iterations))
+
+def test_costs(sort, filename='costs.csv', num_iterations=5, max_int=1000, sizes=range(0,1000001,10000)):
+    print('Testing costs...')
+    with open(filename, 'w') as f:
+        writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(['Number of elements', 'Average cost', *['Trial {}'.format(x) for x in range(num_iterations)]])
+        for size in sizes:
+            costs = [None for _ in range(num_iterations)]
+            for i in range(num_iterations):
+                _, cost = sort(random.choices(range(max_int),k=size))
+                costs[i] = cost
+            writer.writerow([size, sum(costs)/len(costs), *costs])
+    print('Done.')
 
 def test_weight():
     correct_order = [ 'half a pound of wheat'
@@ -222,14 +245,15 @@ def test_weight():
     pprint(turksorted)
 
 if __name__ == '__main__':
-    # test_computer_sort(lambda xs: turksort(xs, compare_greater = computer_compare_greater))
+    # test_sort(lambda xs: turksort(xs, compare_greater = computer_compare_greater))
     session = boto3.Session()
     if production:
         print('!!! Running in production !!!')
         print('Cancel now if this was mistaken')
         time.sleep(10)
-    client = session.client(
-        service_name='mturk',
-        endpoint_url=endpoint_url
-    )
-    test_weight()
+    test_costs(lambda xs: turksort(xs, compare_greater = computer_compare_greater))
+    # client = session.client(
+    #     service_name='mturk',
+    #     endpoint_url=endpoint_url
+    # )
+    # test_weight()
