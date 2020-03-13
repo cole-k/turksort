@@ -1,13 +1,5 @@
 # Turksort
 
-## Acknowledgements
-
-[A blog post by Mikey
-Levine](http://games.hazzens.com/blog/2014/02/27/turk_sort.html) described this
-algorithm before this repository was created. We (the authors) promise that we
-came up with the idea independently, but we still wish to give credit to Mikey
-for writing about it first.
-
 ## About
 
 Turksort is a novel sorting algorithm that uses human intelligence to compare the elements of a (possibily) heterogeneous list.
@@ -32,6 +24,15 @@ $ python3 turksort.py
 ```
 
 This should sort a sample list. The program will output links to the sandbox that you can follow to provide human input.
+
+## Acknowledgements
+
+[A blog post by Mikey
+Levine](http://games.hazzens.com/blog/2014/02/27/turk_sort.html) described this
+algorithm before this repository was created. We (the authors) promise that we
+came up with the idea independently, but we still wish to give credit to Mikey
+for writing about it first.
+
 
 ## Future plans
 
