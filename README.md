@@ -1,5 +1,13 @@
 # Turksort
 
+## Acknowledgements
+
+[A blog post by Mikey
+Levine](http://games.hazzens.com/blog/2014/02/27/turk_sort.html) described this
+algorithm before this repository was created. We (the authors) promise that we
+came up with the idea independently, but we still wish to give credit to Mikey
+for writing about it first.
+
 ## About
 
 Turksort is a novel sorting algorithm that uses human intelligence to compare the elements of a (possibily) heterogeneous list.
@@ -27,7 +35,7 @@ This should sort a sample list. The program will output links to the sandbox tha
 
 ## Future plans
 
-- [ ] Finish paper writeup
-- [ ] Create graphs of performance
-- [ ] Make this into a library and clean up the code
+- [x] Finish paper writeup
+- [x] Create graphs of performance
+- [ ] Make into a library and clean up the code
 - [ ] Parallelization
