@@ -4,6 +4,7 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{fancyref}
+\usepackage{nopageno}
 
 \title{Sorting with Human Intelligence}
 \author{Cole Kurashige \\ Harvey Mudd College}
@@ -32,7 +33,7 @@ done, however, to examine what it means to make a comparison.
 In statically-typed programming languages like Java or C++, comparisons such as
 equal to (\texttt{==}) or greater than (\texttt{>}) are often restricted to
 operating on two elements of the same type\footnote{At least, without trickery
-  or custom comparators.}. These languages consider it a compliation error
+  or custom comparators.}. These languages consider it a compilation error
 to compare elements of differing types.
 
 Dynamically-typed programming languages like Python do not consider it a
@@ -68,7 +69,7 @@ false
 \end{lstlisting}
 
 Though it would be enjoyable to continue to mock JavaScript and its many
-questionable design choices, we cannot fault much for these shortcomings.
+questionable design choices, we cannot fault it much for these shortcomings.
 
 JavaScript, like any programming language, interprets code. It treats queries
 like \texttt{"-1" > "-2"} as being a comparison on characters, not numbers, even
@@ -97,7 +98,7 @@ realized in traditional sorting algorithms. At least until now.
 
 \section{Turksort}
 
-The idea behind turksort is simple: let computers handle all of the sorting
+The idea behind Turksort is simple: let computers handle all of the sorting
 tedium and let humans handle all of the comparisons. It ends up being not that
 different from most sorting algorithms.
 
@@ -111,7 +112,7 @@ comparison. \Fref{fig:comparison} depicts this process.
 \begin{figure}
   \centering
   \includegraphics[width=300pt]{diagram-1.png}
-  \caption{How Turksort comparisons work}
+  \caption{How Turksort comparisons work.}
   \label{fig:comparison}
 \end{figure}
 
@@ -127,7 +128,7 @@ elements to it. It then partitions the list into three groups: those less than,
 equal to, or greater than the pivot. It recursively sorts all three partitions
 and combines them in order, producing a sorted array.
 
-The paritioning process requires queries to be made comparing the pivot to each
+The partitioning process requires queries to be made comparing the pivot to each
 of the other elements in the list. These comparisons are collected and sent to
 MTurk for evaluation. This allows us to batch the computations, since querying
 MTurk is slow in comparison to regular comparison. The answers from MTurk are
@@ -157,7 +158,7 @@ logarithmic base in asymptotic complexity does not matter. We use a monetary
 base of USD.
 
 It takes a Turker about 1 second to answer a single query. Since minimum wage in
-California is presently \$ 12.00, we pay 1 cent for every 3 queries a Turker
+California is presently \$12.00, we pay 1 cent for every 3 queries a Turker
 answers, paying a floor of 1 cent if they are answering fewer than 3. We
 measured the monetary complexity of Turksort with respect to the number of
 elements in the list, with lists up to size 10000. We calculated the cost as
@@ -169,7 +170,7 @@ means that a computation has cost asymptotically proportionate to \(f(n)\).
 Turksort has a monetary complexity of \(\$(n \log n)\); other common sorting
 algorithms have an effective monetary complexity of \(\$(1)\)\footnote{Though
   they cost money by way of using electricity, this is a neglible cost and can
-  be considered effectively constant}. You can observe this complexity in
+  be considered effectively constant.}. You can observe this complexity in
 \fref{fig:costs}.
 
 It is evident that Turksort should only be used in cases where traditional
@@ -183,13 +184,13 @@ which is accuracy. We discuss this below.
   \centering
   \includegraphics[width=300pt]{costs.png}
   \caption{The monetary complexity of Turksort plotted for lists of size up to
-    10000}
+    10000.}
   \label{fig:costs}
 \end{figure}
 
 \subsection{Accuracy}\label{sec:accuracy}
 Surprisingly, Turksort is not a deterministic algorithm. This is because humans
-is not deterministic\footnote{Although it is unknown whether individual humans
+are not deterministic\footnote{Although it is unknown whether individual humans
   are deterministic, in general no two humans perform comparisons exactly
   alike.}. Not only is Turksort nondeterministic, it is also sometimes wrong.
 This is because Turkers do not always perform the right computations. Even on
@@ -199,7 +200,7 @@ This does not mean that Turksort is a useless sorting algorithm. There is a
 simple tradeoff between accuracy and speed: the less time a Turker spends
 answering a question, the more likely it is to be incorrect. Turksort is already
 not winning any races, and that is fine since it serves a specific purpose that
-regular sorting algorithms cannot. So making it slightly slower for greater
+regular sorting algorithms do not. So making it slightly slower for greater
 accuracy is a worthwhile tradeoff. We discuss how to mitigate the problem of
 accuracy by making more or slower queries in \fref{sec:future-work}.
 
@@ -252,4 +253,18 @@ large constants, we believe \(\$(1)\) Turksort algorithms to be impossible,
 as Turkers are not motivated by this gratification. We are presently exploring
 a \(\$(\log^2 n)\) variant of Turksort.
 
+\section{Acknowledgements}
+We would like to acknowledge Arya Massarat, Andrew Pham, and Giselle Serate for
+testing the algorithm for \(\$(1)\) monetary cost. We would also like to
+acknowledge all of the Turkers who tested the paid version of the algorithm. And
+we would finally like to acknowledge Andrew Pham, Giselle Serate, and Max
+Tepermeister for proof reading this paper.
+
+Finally, we would like to acknowledge a blog post by Mikey Levine describing a
+similar idea with the same
+name\footnote{\url{http://games.hazzens.com/blog/2014/02/27/turk_sort.html}} for
+teaching us to search the internet more carefully after we come up with
+so-called ``novel'' ideas and then write papers on them. Indeed, careful
+inspection reveals that this general idea has been explored a few times prior,
+although thankfully not in the same ways as this paper.
 \end{document}
