@@ -3,8 +3,9 @@
 ## About
 
 Turksort is a novel sorting algorithm that uses human intelligence to compare the elements of a (possibily) heterogeneous list.
+It is published in [Sigbovik 2020](http://sigbovik.org/2020/proceedings.pdf).
 
-You can read more about it in the [paper](/paper/turksort.tex/).
+You can read more about it in the [paper](/paper/turksort.tex/). Read the pdf online [here](http://sigbovik.org/2020/proceedings.pdf).
 
 ## Setup
 
